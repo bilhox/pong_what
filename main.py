@@ -2,6 +2,7 @@ import pygame
 import random
 import math
 
+from particle_system import *
 from spark import *
 
 SCREEN_SIZE = pygame.Vector2(960, 540)
@@ -9,6 +10,7 @@ SCREEN_SIZE = pygame.Vector2(960, 540)
 pygame.init()
 
 sparks = []
+particles = []
 
 class Ball:
 
@@ -20,11 +22,27 @@ class Ball:
         pygame.draw.circle(self.surface, [233, 245, 249], [8, 8], 7)
 
         random_angle = random.uniform(3*math.pi/4, 5*math.pi/4) - math.pi * (1 - random.randint(0, 1))
+
         self.direction = pygame.Vector2(math.cos(random_angle), math.sin(random_angle))
+
+        deviation_angle = random_angle + random.uniform(-3*math.pi/6, 3*math.pi/6)
+        self.deviation = pygame.Vector2(math.cos(deviation_angle), math.sin(deviation_angle))
 
         self.movement = pygame.Vector2(0,0)
 
+        self.deviation_timer = 0
+        self.deviation_time = 3
+
         self.speed = 400
+    
+    def random_deviation(self):
+
+        self.deviation_timer = 0
+
+        angle = math.atan2(self.direction.y, self.direction.x)
+
+        deviation_angle = angle + random.uniform(-3*math.pi/6, 3*math.pi/6)
+        self.deviation = pygame.Vector2(math.cos(deviation_angle), math.sin(deviation_angle))
 
 # def generate_shadows(objects : list[pygame.FRect, pygame.Surface]) -> list[pygame.Surface, tuple]:
 
@@ -37,22 +55,6 @@ class Ball:
 #         shadows.append([mask.to_surface(setcolor=(0, 0, 0, 255), unsetcolor=(0, 0, 0, 0)), pos])
 
 #     return shadows
-
-def generate_sparks(position : pygame.Vector2, normal : pygame.Vector2):
-
-    normal_angle = math.atan2(normal.y, normal.x)
-
-    for _ in range(5):
-        spark = Spark()
-
-        spark.position = position.copy()
-        spark.speed = random.uniform(250, 300)
-        spark.speed_scale = spark.speed / 100
-        spark.scale = random.uniform(3.0, 3.75)
-        spark.angle = random.uniform(normal_angle - 2*math.pi/6, normal_angle + 2*math.pi/6)
-        spark.color = pygame.Color(255, 255, 255)
-
-        sparks.append(spark)
 
 def collisions(rect : pygame.FRect, colliders : list[pygame.FRect]) -> list[pygame.FRect]:
 
@@ -80,23 +82,27 @@ def collision_resolution(ball : Ball, colliders : list[pygame.FRect]) -> None:
         score_result = 0
     
     for collided in collisions(ball.rect, colliders):
+        ball.speed += 20
         if ball.movement.x < 0:
             ball.rect.left = collided.right
             ball.direction.reflect_ip(pygame.Vector2(1, 0))
         elif ball.movement.x > 0:
             ball.rect.right = collided.left
             ball.direction.reflect_ip(pygame.Vector2(-1, 0))
+        ball.random_deviation()
     
     ball.rect.y += ball.movement.y
 
     if(ball.rect.top < 0):
         ball.rect.top = 0
         ball.direction.reflect_ip(pygame.Vector2(0, 1))
-        generate_sparks(pygame.Vector2(ball.rect.midtop), pygame.Vector2(0, 1))
+        generate_sparks(sparks, pygame.Vector2(ball.rect.midtop), pygame.Vector2(0, 1))
+        ball.random_deviation()
     elif (ball.rect.bottom > SCREEN_SIZE.y):
         ball.rect.bottom = SCREEN_SIZE.y
         ball.direction.reflect_ip(pygame.Vector2(0, -1))
-        generate_sparks(pygame.Vector2(ball.rect.midbottom), pygame.Vector2(0, -1))
+        generate_sparks(sparks, pygame.Vector2(ball.rect.midbottom), pygame.Vector2(0, -1))
+        ball.random_deviation()
     
     for collided in collisions(ball.rect, colliders):
         if ball.movement.y < 0:
@@ -105,6 +111,7 @@ def collision_resolution(ball : Ball, colliders : list[pygame.FRect]) -> None:
         elif ball.movement.y > 0:
             ball.rect.bottom = collided.top
             ball.direction.reflect_ip(pygame.Vector2(0, -1))
+        ball.random_deviation()
     
     return score_result
 
@@ -131,11 +138,16 @@ big_font = pygame.Font("alagard.ttf", 40)
 
 score = [0, 0]
 
+particle_timer = 0
+particle_spawnrate = 0.05
+
 running = True
 
 while running:
 
     dt = clock.tick(0) / 1000
+
+    particle_timer += dt
 
     # event handling
 
@@ -179,7 +191,8 @@ while running:
     
     player_2.y = pygame.math.clamp(player_2.y, 20, SCREEN_SIZE.y - 20 - player_2.height)
 
-    ball.movement = ball.direction * ball.speed * dt
+    ball.deviation_timer = max(ball.deviation_timer + dt, ball.deviation_time)
+    ball.movement = (ball.direction + (ball.deviation_timer / ball.deviation_time) * ball.deviation).normalize() * ball.speed * dt
 
     result = collision_resolution(ball, [player_1, player_2])
 
@@ -192,6 +205,14 @@ while running:
         random_angle = random.uniform(-math.pi/4, math.pi/4) + math.pi * result
         ball.direction = pygame.Vector2(math.cos(random_angle), math.sin(random_angle))
         ball.rect.center = SCREEN_SIZE / 2
+        ball.speed = 400
+        ball.deviation_timer = 0
+
+        particles.clear()
+    
+    if(particle_timer > particle_spawnrate):
+        generate_ball_particles(particles, ball.rect)
+        particle_timer = 0
 
     # drawing
 
@@ -204,13 +225,21 @@ while running:
     for spark in sparks:
 
         spark.update(dt)
-        spark.speed_scale -= 6 * dt
-        spark.speed -= 30.5 * dt
+        spark.speed_scale -= 8 * dt
+        spark.speed -= 60.5 * dt
 
         if spark.speed_scale < 0:
             sparks.remove(spark)
         else:
             spark.draw(screen)
+    
+    for particle in particles:
+        particle.update(dt)
+
+        if(particle.life_time <= 0):
+            particles.remove(particle)
+        else:
+            particle.draw(screen)
 
     screen.blit(player_surface, player_1.topleft)
     screen.blit(player_surface, player_2.topleft)

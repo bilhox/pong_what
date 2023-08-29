@@ -1,5 +1,6 @@
 import pygame
 import math
+import random
 
 class Spark:
 
@@ -28,10 +29,24 @@ class Spark:
         
         pygame.draw.polygon(dest, self.color, self._points)
 
+def generate_sparks(sparks : list[Spark], position : pygame.Vector2, normal : pygame.Vector2):
+
+    normal_angle = math.atan2(normal.y, normal.x)
+
+    for _ in range(5):
+        spark = Spark()
+
+        spark.position = position.copy()
+        spark.speed = random.uniform(250, 300)
+        spark.speed_scale = spark.speed / 100
+        spark.scale = random.uniform(3.0, 3.75)
+        spark.angle = random.uniform(normal_angle - 2*math.pi/6, normal_angle + 2*math.pi/6)
+        spark.color = pygame.Color(255, 255, 255)
+
+        sparks.append(spark)
+
 
 if __name__ == "__main__":
-
-    import random
 
     screen = pygame.display.set_mode([500, 500])
 
