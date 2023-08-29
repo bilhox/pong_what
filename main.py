@@ -46,9 +46,9 @@ def generate_sparks(position : pygame.Vector2, normal : pygame.Vector2):
         spark = Spark()
 
         spark.position = position.copy()
-        spark.speed = random.uniform(200, 250)
+        spark.speed = random.uniform(250, 300)
         spark.speed_scale = spark.speed / 100
-        spark.scale = random.uniform(3.5, 4.5)
+        spark.scale = random.uniform(3.0, 3.75)
         spark.angle = random.uniform(normal_angle - 2*math.pi/6, normal_angle + 2*math.pi/6)
         spark.color = pygame.Color(255, 255, 255)
 
@@ -73,12 +73,10 @@ def collision_resolution(ball : Ball, colliders : list[pygame.FRect]) -> None:
     if(ball.rect.left < 0):
         ball.rect.left = 0
         ball.direction.reflect_ip(pygame.Vector2(1, 0))
-        generate_sparks(pygame.Vector2(ball.rect.midleft), pygame.Vector2(1, 0))
         score_result = 1
     elif (ball.rect.right > SCREEN_SIZE.x):
         ball.rect.right = SCREEN_SIZE.x
         ball.direction.reflect_ip(pygame.Vector2(-1, 0))
-        generate_sparks(pygame.Vector2(ball.rect.midright), pygame.Vector2(-1, 0))
         score_result = 0
     
     for collided in collisions(ball.rect, colliders):
@@ -137,7 +135,7 @@ running = True
 
 while running:
 
-    dt = clock.tick(60) / 1000
+    dt = clock.tick(0) / 1000
 
     # event handling
 
@@ -199,40 +197,40 @@ while running:
 
     screen.fill(0x130c2b)
     
-    display_surface = pygame.Surface(SCREEN_SIZE, pygame.SRCALPHA)
+    # display_surface = pygame.Surface(SCREEN_SIZE, pygame.SRCALPHA)
 
     # screen.blits(shadows)
 
     for spark in sparks:
 
         spark.update(dt)
-        spark.speed_scale -= 4 * dt
-        spark.speed -= 15.5 * dt
+        spark.speed_scale -= 6 * dt
+        spark.speed -= 30.5 * dt
 
         if spark.speed_scale < 0:
             sparks.remove(spark)
         else:
-            spark.draw(display_surface)
+            spark.draw(screen)
 
-    display_surface.blit(player_surface, player_1.topleft)
-    display_surface.blit(player_surface, player_2.topleft)
+    screen.blit(player_surface, player_1.topleft)
+    screen.blit(player_surface, player_2.topleft)
     
     pygame.draw.line(screen, [168, 213, 229], (480, 0), (480, 540))
 
-    display_surface.blit(ball.surface, ball.rect.topleft)
+    screen.blit(ball.surface, ball.rect.topleft)
 
     fps_text = small_font.render(f"FPS : {round(clock.get_fps(), 2)}", True, "white")
-    display_surface.blit(fps_text, [SCREEN_SIZE.x / 2 - 60, SCREEN_SIZE.y - fps_text.get_height() - 20])
+    screen.blit(fps_text, [SCREEN_SIZE.x / 2 - 60, SCREEN_SIZE.y - fps_text.get_height() - 20])
 
     score_text_player_1 = big_font.render(f"{score[0]}", True, "white")
-    display_surface.blit(score_text_player_1, [SCREEN_SIZE.x / 2 - score_text_player_1.get_width() - 40, 20])
+    screen.blit(score_text_player_1, [SCREEN_SIZE.x / 2 - score_text_player_1.get_width() - 40, 20])
 
     score_text_player_2 = big_font.render(f"{score[1]}", True, "white")
-    display_surface.blit(score_text_player_2, [SCREEN_SIZE.x / 2 + 40, 20])
+    screen.blit(score_text_player_2, [SCREEN_SIZE.x / 2 + 40, 20])
 
-    mask = pygame.mask.from_surface(display_surface, 0)
-    screen.blit(mask.to_surface(setcolor=(0, 0, 0, 255), unsetcolor=(0, 0, 0, 0)), [5, 5])
-    screen.blit(display_surface, [0,0])
+    # mask = pygame.mask.from_surface(screen, 0)
+    # screen.blit(mask.to_surface(setcolor=(0, 0, 0, 255), unsetcolor=(0, 0, 0, 0)), [5, 5])
+    # screen.blit(screen, [0,0])
     pygame.display.flip()
 
 pygame.quit()
