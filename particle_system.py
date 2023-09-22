@@ -21,7 +21,7 @@ class Particle():
 
         dest.blit(self.texture, self.position)
 
-def generate_ball_particle_surfaces() -> list[pygame.Surface]:
+def generate_ball_particle_surfaces() -> dict[list[pygame.Surface]]:
 
     surfaces = []
 
@@ -34,17 +34,17 @@ def generate_ball_particle_surfaces() -> list[pygame.Surface]:
     surfaces.append(big_circle)
     surfaces.append(small_circle)
 
-    return surfaces
+    return {"particles_1":surfaces}
 
 ball_particle_surfaces = generate_ball_particle_surfaces()
 
-def generate_ball_particles(particles : list[Particle], ball_rect : pygame.FRect):
+def generate_ball_particles(particles : list[Particle], ball_rect : pygame.FRect, n : int = 2):
     
-    for _ in range(2):
+    for _ in range(n):
         
         particle = Particle()
         
-        particle.texture = random.choice(ball_particle_surfaces)
+        particle.texture = random.choice(ball_particle_surfaces["particles_1"])
         particle.position = ball_rect.center + pygame.Vector2(random.uniform(-3, 3), random.uniform(-3, 3)) - 0.5 * pygame.Vector2(particle.texture.get_size())
         particle.angle = random.uniform(0, 2 * math.pi)
         particle.speed = 5
